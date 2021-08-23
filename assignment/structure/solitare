@@ -1,0 +1,262 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#define NUM_SHAPE 2
+typedef struct node_type* node_ptr;
+typedef struct stacknode_type* stack_ptr;
+int mark[2][13] = { 0 };
+int arr[2];
+int cnt = 16;
+const char* sh[3] = { "♥","◆","■" };
+node_ptr list[10];
+stack_ptr top;
+struct node_type {// BOARD를 위한 노드구조체
+	int num;
+	int shape;
+	int show;
+	node_ptr llink, rlink;
+};
+struct stacknode_type {//HANDCARD 를 위한 구조체
+	int num;
+	int shape;
+	int show;
+	stack_ptr link;
+};
+stack_ptr create_handcardnode(int sh, int no) {//init_card 함수에서 전체적인 스택을 구현하기 위해 malloc 후 반복문 안에 temp->link= create_handcardnode(sha,no)를 한 후 temp=temp->link 해주기
+	stack_ptr temp;
+	temp = (stack_ptr)malloc(sizeof(struct stacknode_type));
+	temp->shape = sh;
+	temp->num = no;
+	temp->link = NULL;
+	return temp;
+}
+
+node_ptr create_boardnode(int sh, int num) {//reset_board에서 전체적인 트리를 list->left->left = create_boardnode(arr[0],arr[1])을 사용해 만들어주기
+	node_ptr node, arr = *list;
+	node = (node_ptr)malloc(sizeof(struct node_type));
+	if (node != NULL) {
+		node->shape = sh;
+		node->num = num;
+		node->rlink = NULL;
+		node->llink = NULL;
+		node->show = 0;
+		return node;
+	}
+}
+void pick_card() {//각각의 node를 만들기 전에 배열에 shape값과 num값을 랜덤하게 저장해준 후 저장된 값을 이용해 data에 저장하기;
+	int sh, no, flag = 1;
+	while (flag) {
+		sh = rand() % NUM_SHAPE;
+		no = rand() % 13;
+		if (mark[sh][no] == 0) {
+			arr[0] = sh + 1;
+			arr[1] = no + 1;
+			mark[sh][no] = 1;
+			flag = 0;
+		}
+	}
+}
+void init_card() {//handcard를 정해주기
+	int cnt = 16;
+	stack_ptr temp;
+	while (cnt--) {
+		pick_card();
+		temp = create_handcardnode(arr[0], arr[1]);
+		temp->link = top;
+		top = temp;
+	}
+}
+void reset_board() {//board의 트리를 구현해주고 그 안에 값을 넣어주기
+	for (int i = 0; i < 10; i++) {
+		pick_card();
+		list[i] = create_boardnode(arr[0], arr[1]);
+	}
+	list[0]->llink = list[1];
+	list[0]->rlink = list[2];
+	list[1]->llink = list[3];
+	list[1]->rlink = list[4];
+	list[2]->llink = list[4];
+	list[2]->rlink = list[5];
+	list[3]->llink = list[6];
+	list[3]->rlink = list[7];
+	list[4]->llink = list[7];
+	list[4]->rlink = list[8];
+	list[5]->llink = list[8];
+	list[5]->rlink = list[9];
+
+}
+/* handcard의 경우 top이 가르키는 노드일 경우 값을 보이고, 아닐 경우 가리기.
+boardcard의 경우 rlink와 llink가 모두 NULL 이라면 값을 보이고, 둘 중 하나라도 NULL이 아니라면 값을 가리기
+*/
+void show_board() {
+	int k = 1, l = 1, cnt = 1;
+	for (int i = 0; i < 10; i++, k++) {
+
+		if (k == 1) {
+			for (int j = 4; j - cnt != 0; j--) {
+				printf("   ");
+			}
+		}
+
+		if (list[i] == NULL) {
+			printf("       ");
+			continue;
+		}
+		if (list[i]->llink == NULL && list[i]->rlink == NULL) {
+			list[i]->show = 1;
+		}
+		if (list[i]->show == 1) {
+			if (list[i]->shape == 1) {
+				if (list[i]->num > 10) {
+					if (list[i]->num == 11) {
+						printf("%s%c    ", sh[0], 'J');
+					}
+					if (list[i]->num == 12) {
+						printf("%s%c    ", sh[0], 'Q');
+					}
+					if (list[i]->num == 13) {
+						printf("%s%c    ", sh[0], 'K');
+					}
+				}
+				else {
+					printf("%s%d    ", sh[0], list[i]->num);
+				}
+			}
+			if (list[i]->shape == 2) {
+				if (list[i]->num > 10) {
+					if (list[i]->num == 11) {
+						printf("%s%c    ", sh[1], 'J');
+					}
+					if (list[i]->num == 12) {
+						printf("%s%c    ", sh[1], 'Q');
+					}
+					if (list[i]->num == 13) {
+						printf("%s%c    ", sh[1], 'K');
+					}
+				}
+				else {
+					printf("%s%d    ", sh[1], list[i]->num);
+				}
+			}
+		}
+		else {
+			printf("%s    ", sh[2]);
+		}
+		if (k == cnt) {
+			cnt++;
+			k = 0;
+
+			printf("\n\n");
+		}
+	}
+	printf("\n");
+}
+void show_handcard() {
+	printf("You have (%d) cards.\n", cnt);
+	printf("===============================================\n");
+	stack_ptr temp;
+	temp = top;
+	if (top->num <= 10) {
+		printf("%s%d ", sh[top->shape - 1], top->num);
+	}
+	else if (top->num == 11) {
+		printf("%s%c", sh[top->shape - 1], 'J');
+	}
+	else if (top->num == 12) {
+		printf("%s%c", sh[top->shape - 1], 'Q');
+	}
+	else if (top->num == 13) {
+		printf("%s%c", sh[top->shape - 1], 'k');
+	}
+	for (int i = 0; i < 10 && temp->link != NULL; i++) {
+		printf("  %s", sh[2]);
+		temp = temp->link;
+	}
+	printf("\n\n");
+}
+int search_card(int n) {//n번째 노드에 삭제할 수 있는지 판단.
+	stack_ptr temp;
+	if (n == -1) {
+		return -1;
+	}
+	if (list[n]->num == top->num + 1 || list[n]->num == top->num - 1) {
+		if (n == 9) { list[5]->rlink = NULL; }
+		else if (n == 8) {
+			list[4]->rlink = NULL;
+			list[5]->llink = NULL;
+		}
+		else if (n == 7) {
+			list[3]->rlink = NULL;
+			list[4]->llink = NULL;
+		}
+		else if (n == 6) {
+			list[3]->llink = NULL;
+		}
+		else if (n == 5) {
+			list[2]->rlink = NULL;
+		}
+		else if (n == 4) {
+			list[1]->rlink = NULL;
+			list[2]->llink = NULL;
+		}
+		else if (n == 3) {
+			list[1]->llink = NULL;
+		}
+		else if (n == 2) { list[0]->rlink = NULL; }
+		else {
+			list[0]->llink = NULL;
+		}
+		printf("%s%d  is removed.\n\n", sh[list[n]->shape - 1], list[n]->num);
+		temp = create_handcardnode(list[n]->shape, list[n]->num);
+		temp->link = top;
+		top = temp;
+		list[n] = NULL;
+		cnt++;
+		return 1;
+	}
+	else
+		return -1;
+}
+int isempty() {
+	if (top == NULL) {
+		return 1;
+	}
+	return 0;
+}
+void pop_handcard() {
+	if (!isempty()) {
+		stack_ptr temp = top;
+		int shape = temp->shape;
+		int num = temp->num;
+		top = temp->link;
+		free(temp);
+		cnt--;
+		if (cnt != 0) {
+			printf("\nFlip a new card\n\n ");
+		}
+	}
+}
+
+int main() {
+	int n;
+	init_card();
+	reset_board();
+	while (1) {
+		show_board();
+		show_handcard();
+		printf("Enter a number[0..9] to remove(-1 = new card) : ");
+		scanf_s("%d", &n);
+		if (search_card(n) == -1) {
+			pop_handcard();
+		}
+		if (list == NULL) {
+			printf("\nYOU WIN \n");
+			return 0;
+		}
+		if (cnt == 0) {
+			printf("YOU LOSE!\n");
+			return 0;
+		}
+
+	}
+}
